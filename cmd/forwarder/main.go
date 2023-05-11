@@ -3,11 +3,13 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
+	"time"
+
 	"solace.dev/go/messaging"
 	"solace.dev/go/messaging/pkg/solace/config"
 	"solace.dev/go/messaging/pkg/solace/message"
 	"solace.dev/go/messaging/pkg/solace/resource"
-	"time"
 )
 
 func MessageHandler(message message.InboundMessage) {
@@ -48,9 +50,10 @@ func main() {
 
 	fmt.Println("Connected to the broker? ", messagingService.IsConnected())
 
-	subscriber, err := messagingService.CreateDirectMessageReceiverBuilder().
-		WithSubscriptions(resource.TopicSubscriptionOf("try-me")).
-		Build()
+	subscriber, err := messagingService.CreatePersistentMessageReceiverBuilder().
+		WithMissingResourcesCreationStrategy(config.MissingResourcesCreationStrategy("CREATE_ON_START")).
+		WithSubscriptions(resource.TopicSubscriptionOf("*/Call/>")).
+		Build(resource.QueueDurableNonExclusive("queue-call"))
 	if err != nil {
 		panic(err)
 	}
@@ -64,4 +67,10 @@ func main() {
 	if err := subscriber.ReceiveAsync(MessageHandler); err != nil {
 		panic(err)
 	}
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+
+	// Block until a signal is received.
+	<-c
 }
