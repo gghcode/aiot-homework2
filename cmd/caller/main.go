@@ -3,17 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
-	"solace.dev/go/messaging/pkg/solace/message"
 	"solace.dev/go/messaging/pkg/solace/resource"
 	"time"
 
 	"solace.dev/go/messaging"
 	"solace.dev/go/messaging/pkg/solace/config"
 )
-
-func MessageHandler(message message.InboundMessage) {
-	fmt.Printf("Message Dump %s \n", message)
-}
 
 func getEnv(key, def string) string {
 	if val, ok := os.LookupEnv(key); ok {
@@ -23,9 +18,6 @@ func getEnv(key, def string) string {
 }
 
 func main() {
-	//TOPIC_PREFIX := "solace/samples"
-
-	// Configuration parameters
 	brokerConfig := config.ServicePropertyMap{
 		config.TransportLayerPropertyHost:                getEnv("SOLACE_HOST", "tcp://localhost:55554"),
 		config.ServicePropertyVPNName:                    getEnv("SOLACE_VPN", "default"),
@@ -33,7 +25,6 @@ func main() {
 		config.AuthenticationPropertySchemeBasicUserName: getEnv("SOLACE_USERNAME", "default"),
 	}
 
-	// Skip certificate validation
 	messagingService, err := messaging.NewMessagingServiceBuilder().
 		FromConfigurationProvider(brokerConfig).
 		WithTransportSecurityStrategy(config.NewTransportSecurityStrategy().WithoutCertificateValidation()).
