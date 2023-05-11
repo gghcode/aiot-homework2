@@ -6,6 +6,7 @@ import (
 	"solace.dev/go/messaging"
 	"solace.dev/go/messaging/pkg/solace/config"
 	"solace.dev/go/messaging/pkg/solace/message"
+	"solace.dev/go/messaging/pkg/solace/resource"
 	"time"
 )
 
@@ -47,7 +48,9 @@ func main() {
 
 	fmt.Println("Connected to the broker? ", messagingService.IsConnected())
 
-	subscriber, err := messagingService.CreateDirectMessageReceiverBuilder().Build()
+	subscriber, err := messagingService.CreateDirectMessageReceiverBuilder().
+		WithSubscriptions(resource.TopicSubscriptionOf("try-me")).
+		Build()
 	if err != nil {
 		panic(err)
 	}
