@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"solace.dev/go/messaging/pkg/solace/message"
+	"solace.dev/go/messaging/pkg/solace/resource"
+	"time"
 
 	"solace.dev/go/messaging"
 	"solace.dev/go/messaging/pkg/solace/config"
@@ -46,5 +48,25 @@ func main() {
 		panic(err)
 	}
 
+	defer messagingService.Disconnect()
+
 	fmt.Println("Connected to the broker? ", messagingService.IsConnected())
+
+	publisher, err := messagingService.CreateDirectMessagePublisherBuilder().Build()
+	if err != nil {
+		panic(err)
+	}
+
+	defer publisher.Terminate(10 * time.Second)
+
+	if err := publisher.Start(); err != nil {
+		panic(err)
+	}
+
+	msg, _ := messagingService.MessageBuilder().BuildWithStringPayload("call request")
+	// Publish the message to the topic my/topic/string
+
+	if err := publisher.Publish(msg, resource.TopicOf("try-me")); err != nil {
+		panic(err)
+	}
 }
