@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
 	"solace.dev/go/messaging/pkg/solace/resource"
+	"syscall"
 	"time"
 
 	"solace.dev/go/messaging"
@@ -55,9 +57,23 @@ func main() {
 	}
 
 	msg, _ := messagingService.MessageBuilder().BuildWithStringPayload("call request")
-	// Publish the message to the topic my/topic/string
 
-	if err := publisher.Publish(msg, resource.TopicOf("try-me")); err != nil {
-		panic(err)
-	}
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGTERM)
+
+	go func() {
+		for {
+			select {
+			case <-sig:
+				fmt.Println("SIGTERM received. Exiting...")
+				os.Exit(0)
+			default:
+				fmt.Println("calling...")
+				if err := publisher.Publish(msg, resource.TopicOf("af4092/Call/01089621111/01089623333")); err != nil {
+					panic(err)
+				}
+				time.Sleep(1 * time.Second)
+			}
+		}
+	}()
 }
