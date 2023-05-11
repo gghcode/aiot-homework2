@@ -12,10 +12,6 @@ import (
 	"solace.dev/go/messaging/pkg/solace/resource"
 )
 
-func MessageHandler(message message.InboundMessage) {
-	fmt.Printf("Message Dump %s \n", message)
-}
-
 func getEnv(key, def string) string {
 	if val, ok := os.LookupEnv(key); ok {
 		return val
@@ -64,7 +60,25 @@ func main() {
 		panic(err)
 	}
 
-	if err := subscriber.ReceiveAsync(MessageHandler); err != nil {
+	publisher, err := messagingService.CreateDirectMessagePublisherBuilder().Build()
+	if err != nil {
+		panic(err)
+	}
+
+	defer publisher.Terminate(10 * time.Second)
+
+	if err := publisher.Start(); err != nil {
+		panic(err)
+	}
+
+	if err := subscriber.ReceiveAsync(func(message message.InboundMessage) {
+		fmt.Printf("Message Dump %s \n", message)
+
+		msg, _ := messagingService.MessageBuilder().BuildWithStringPayload("log")
+		if err := publisher.Publish(msg, resource.TopicOf("log")); err != nil {
+			panic(err)
+		}
+	}); err != nil {
 		panic(err)
 	}
 
