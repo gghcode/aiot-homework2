@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"solace.dev/go/messaging/pkg/solace/resource"
 	"syscall"
 	"time"
 
 	"solace.dev/go/messaging"
 	"solace.dev/go/messaging/pkg/solace/config"
+	"solace.dev/go/messaging/pkg/solace/resource"
 )
 
 func getEnv(key, def string) string {
@@ -68,10 +68,15 @@ func main() {
 				fmt.Println("SIGTERM received. Exiting...")
 				os.Exit(0)
 			default:
-				fmt.Println("calling...")
-				if err := publisher.Publish(msg, resource.TopicOf("af4092/Call/01089621111/01089623333")); err != nil {
+				a := getRandomPhoneNumber()
+				b := getRandomPhoneNumber()
+
+				fmt.Printf("calling... %s -> %s\n", a, b)
+
+				if err := publisher.Publish(msg, resource.TopicOf("af4092/Call/"+a+"/"+b)); err != nil {
 					panic(err)
 				}
+
 				time.Sleep(1 * time.Second)
 			}
 		}
@@ -79,4 +84,8 @@ func main() {
 
 	for {
 	}
+}
+
+func getRandomPhoneNumber() string {
+	return fmt.Sprintf("010%04d%04d", time.Now().UnixNano()%10000, time.Now().UnixNano()%10000)
 }
