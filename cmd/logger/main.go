@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"time"
+
 	"solace.dev/go/messaging"
 	"solace.dev/go/messaging/pkg/solace/config"
 	"solace.dev/go/messaging/pkg/solace/message"
 	"solace.dev/go/messaging/pkg/solace/resource"
-	"time"
 )
 
 func getEnv(key, def string) string {
@@ -45,10 +46,10 @@ func main() {
 
 	fmt.Println("Connected to the broker? ", messagingService.IsConnected())
 
-	subscriber, err := messagingService.CreatePersistentMessageReceiverBuilder().
-		WithMissingResourcesCreationStrategy(config.MissingResourcesCreationStrategy("CREATE_ON_START")).
-		WithSubscriptions(resource.TopicSubscriptionOf("*/Call/>")).
-		Build(resource.QueueDurableNonExclusive("queue-call"))
+	subscriber, err := messagingService.CreateDirectMessageReceiverBuilder().
+		// WithMissingResourcesCreationStrategy(config.MissingResourcesCreationStrategy("CREATE_ON_START")).
+		WithSubscriptions(resource.TopicSubscriptionOf("Call-Log/>")).
+		Build()
 	if err != nil {
 		panic(err)
 	}
@@ -60,7 +61,10 @@ func main() {
 	}
 
 	if err := subscriber.ReceiveAsync(func(message message.InboundMessage) {
-		fmt.Printf("Print Log %s \n", message)
+		output, ok := message.GetPayloadAsString()
+		if ok {
+			fmt.Printf("Print Log: %s => %s\n", message.GetDestinationName(), output)
+		}
 	}); err != nil {
 		panic(err)
 	}

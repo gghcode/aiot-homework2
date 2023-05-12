@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"solace.dev/go/messaging"
@@ -47,7 +48,6 @@ func main() {
 	fmt.Println("Connected to the broker? ", messagingService.IsConnected())
 
 	subscriber, err := messagingService.CreatePersistentMessageReceiverBuilder().
-		WithMissingResourcesCreationStrategy(config.MissingResourcesCreationStrategy("CREATE_ON_START")).
 		WithSubscriptions(resource.TopicSubscriptionOf("*/Call/>")).
 		Build(resource.QueueDurableNonExclusive("queue-call"))
 	if err != nil {
@@ -72,10 +72,19 @@ func main() {
 	}
 
 	if err := subscriber.ReceiveAsync(func(message message.InboundMessage) {
-		fmt.Printf("Message Dump %s \n", message)
+		payload, ok := message.GetPayloadAsString()
+		if ok {
+			fmt.Printf("Message Payload %s \n", payload)
+		}
+
+		fmt.Printf("Message Destination %s \n", message.GetDestinationName())
+
+		callTopics := strings.Split(message.GetDestinationName(), "/")
+		logTopic := fmt.Sprintf("Call-Log/%s/%d/%s/%s",
+			"af4092", time.Now().Unix(), callTopics[2], callTopics[3])
 
 		msg, _ := messagingService.MessageBuilder().BuildWithStringPayload("log")
-		if err := publisher.Publish(msg, resource.TopicOf("log")); err != nil {
+		if err := publisher.Publish(msg, resource.TopicOf(logTopic)); err != nil {
 			panic(err)
 		}
 	}); err != nil {
